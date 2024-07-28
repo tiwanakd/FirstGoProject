@@ -1,32 +1,72 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
+	"os"
 	"projecta/movies"
+	"strings"
 )
 
 func main() {
 	var movie movies.Movie
-	// allMovies, _ := movies.GetAllMovies()
+	const fileName = "marvel_movies.csv"
 
-	// fmt.Println(len(*allMovies))
+	var command string
 
-	// for _, m := range *allMovies {
-	// 	fmt.Println(m.ReleaseDate.Date())
-	// }
+loop:
+	for {
 
-	//movies.PrintAllMovies()
+		fmt.Print("Enter Command: ")
+		fmt.Scan(&command)
 
-	// mv, err := movie.SearchMoviebyName("marvel_movies.csv", "iron Man")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// mv.PrintMovieDetails()
+		switch command {
+		case "A":
+			allMovies, err := movie.GetAllMovies(fileName)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
+			movie.PrintAll(allMovies)
+		case "R":
+			var rating float64
+			fmt.Print("Enter Rating: ")
+			fmt.Scan(&rating)
+			moviesByRating, err := movie.GetMoviesByRating(fileName, rating)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
+			movie.PrintAll(moviesByRating)
+		case "N":
+			fmt.Print("Enter Movie Name: ")
+			movieName := inputMovieName()
+			serchMovie, err := movie.SearchMoviebyName(fileName, movieName)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
+			serchMovie.PrintMovieDetails()
 
-	//movie.PrintAll()
+		case "E":
+			break loop
+		default:
+			fmt.Println("Invalid Command")
+		}
 
-	byRating, _ := movie.GetMoviesByRating("marvel_movies.csv", 8)
-	for _, mv := range *byRating {
-		mv.PrintMovieDetails()
 	}
+}
+
+func inputMovieName() string {
+
+	reader := bufio.NewReader(os.Stdin)
+	moveName, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return ""
+	}
+
+	moveName = strings.TrimSuffix(moveName, "\n")
+	return moveName
+
 }

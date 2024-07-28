@@ -20,20 +20,10 @@ type Movie struct {
 	Rating          float64
 }
 
-func (m Movie) PrintAll() {
-	allMoves, err := m.getAllMovies("marvel_movies.csv")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	}
-
-	for i, movie := range *allMoves {
-		if i == 0 {
-			continue //skipping the first row for column names
-		}
-
+func (mv Movie) PrintAll(allmovies *[]Movie) {
+	for _, movie := range *allmovies {
 		movie.PrintMovieDetails()
 	}
-
 }
 
 // Creae a method to print all the reuiqed details for movie type
@@ -60,7 +50,7 @@ func getDate(dateString string) time.Time {
 // Using ReadAll() will reuturn a string slices of slice
 // Arrange them into the Movie Strutct
 // Make a slice of Movie structs and return a pointer to it.
-func (mv Movie) getAllMovies(filepath string) (*[]Movie, error) {
+func (mv Movie) GetAllMovies(filepath string) (*[]Movie, error) {
 
 	moviesFile, err := os.Open(filepath)
 	if err != nil {
@@ -75,6 +65,7 @@ func (mv Movie) getAllMovies(filepath string) (*[]Movie, error) {
 	if err != nil {
 		return nil, err
 	}
+	csvData = csvData[1:] //skipping the first row for column names
 
 	//make a movies slice which has the length of slice returned by readMoviesFile
 	movies := make([]Movie, len(csvData))
