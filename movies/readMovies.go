@@ -2,6 +2,7 @@ package movies
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -22,20 +23,22 @@ type Movie struct {
 
 func (mv Movie) PrintAll(allmovies *[]Movie) {
 	for _, movie := range *allmovies {
-		movie.PrintMovieDetails()
+		fmt.Println(movie)
 	}
 }
 
-// Creae a method to print all the reuiqed details for movie type
-func (mv Movie) PrintMovieDetails() {
+// Implement the Stringer Interface
+func (mv Movie) String() string {
 
-	fmt.Printf("%s:\n", mv.MovieName)
-	fmt.Printf("\tDirector: %s\n", mv.Director)
-	fmt.Printf("\tMain Protagonist: %s\n", mv.MainProtagonist)
-	fmt.Printf("\tMain Antagonist: %s\n", mv.MainAntagonist)
-	fmt.Printf("\tRelease Date: %v\n", mv.ReleaseDate.Format("2006-Jan-02"))
-	fmt.Printf("\tRating: %.2f\n", mv.Rating)
-	fmt.Println("-------------------------------------------------------")
+	movieName := fmt.Sprintf("%s:\n", mv.MovieName)
+	director := fmt.Sprintf("\tDirector: %s\n", mv.Director)
+	mainProtagonist := fmt.Sprintf("\tMain Protagonist: %s\n", mv.MainProtagonist)
+	mainAntagonist := fmt.Sprintf("\tMain Antagonist: %s\n", mv.MainAntagonist)
+	releaseDate := fmt.Sprintf("\tRelease Date: %v\n", mv.ReleaseDate.Format("2006-Jan-02"))
+	rating := fmt.Sprintf("\tRating: %.2f\n", mv.Rating)
+	lineBreak := fmt.Sprintln("-------------------------------------------------------")
+
+	return movieName + director + mainProtagonist + mainAntagonist + releaseDate + rating + lineBreak
 }
 
 // Since date is being provided as string
@@ -123,6 +126,11 @@ func (mv Movie) SearchMoviebyName(file, movieName string) (Movie, error) {
 }
 
 func (mv Movie) GetMoviesByRating(file string, rating float64) (*[]Movie, error) {
+
+	if rating == 0 {
+		return nil, errors.New("rating provided is not a valid number")
+	}
+
 	moviesFile, err := os.Open(file)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read movies csv file %w", err)
@@ -137,7 +145,7 @@ func (mv Movie) GetMoviesByRating(file string, rating float64) (*[]Movie, error)
 	for {
 		record, err := csvReader.Read()
 		if err == io.EOF {
-			fmt.Fprintln(os.Stderr, "error: invalid rating")
+			fmt.Fprintln(os.Stderr, "error: invalid rating or too high!")
 			break
 		}
 		if err != nil {

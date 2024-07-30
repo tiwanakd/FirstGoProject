@@ -16,12 +16,17 @@ func main() {
 
 loop:
 	for {
+		fmt.Println("Choose from the following: ")
+		fmt.Println("L - List all Movies")
+		fmt.Println("R - Enter Rating")
+		fmt.Println("N - Serach Movie by Name")
+		fmt.Println("E - Exit")
 
 		fmt.Print("Enter Command: ")
 		fmt.Scan(&command)
 
-		switch command {
-		case "A":
+		switch strings.ToUpper(command) {
+		case "L":
 			allMovies, err := movie.GetAllMovies(fileName)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -32,6 +37,7 @@ loop:
 			var rating float64
 			fmt.Print("Enter Rating: ")
 			fmt.Scan(&rating)
+
 			moviesByRating, err := movie.GetMoviesByRating(fileName, rating)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -46,7 +52,7 @@ loop:
 				fmt.Fprintln(os.Stderr, err)
 				return
 			}
-			serchMovie.PrintMovieDetails()
+			fmt.Println(serchMovie)
 
 		case "E":
 			break loop
@@ -58,7 +64,6 @@ loop:
 }
 
 func inputMovieName() string {
-
 	reader := bufio.NewReader(os.Stdin)
 	moveName, err := reader.ReadString('\n')
 	if err != nil {
@@ -68,5 +73,4 @@ func inputMovieName() string {
 
 	moveName = strings.TrimSuffix(moveName, "\n")
 	return moveName
-
 }
