@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"os"
 	"projecta/movies"
+	"strconv"
 	"strings"
 )
 
+const fileName = "marvel_movies.csv"
+
 func main() {
 	var movie movies.Movie
-	const fileName = "marvel_movies.csv"
 
 	var command string
 
@@ -20,6 +22,7 @@ loop:
 		fmt.Println("L - List all Movies")
 		fmt.Println("R - Enter Rating")
 		fmt.Println("N - Serach Movie by Name")
+		fmt.Println("A - Add New Movie")
 		fmt.Println("E - Exit")
 
 		fmt.Print("Enter Command: ")
@@ -34,25 +37,41 @@ loop:
 			}
 			movie.PrintAll(allMovies)
 		case "R":
-			var rating float64
 			fmt.Print("Enter Rating: ")
-			fmt.Scan(&rating)
+			rating, _ := strconv.ParseFloat(inputDetails(), 64)
 
 			moviesByRating, err := movie.GetMoviesByRating(fileName, rating)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				return
 			}
+			fmt.Printf("Movies with rating greater than %.1f\n", rating)
 			movie.PrintAll(moviesByRating)
 		case "N":
 			fmt.Print("Enter Movie Name: ")
-			movieName := inputMovieName()
+			movieName := inputDetails()
 			serchMovie, err := movie.SearchMoviebyName(fileName, movieName)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				return
 			}
 			fmt.Println(serchMovie)
+		case "A":
+			fmt.Println("Enter New Movie Details")
+			newMovie, err := newMovieInfo()
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			err = movies.AddNewMovie(fileName, newMovie)
+			if err != nil {
+				fmt.Printf("Unable to add movie, received error %v\n", err)
+				return
+
+			}
+			fmt.Println("New Movie added!")
+			fmt.Println(newMovie)
 
 		case "E":
 			break loop
@@ -63,14 +82,14 @@ loop:
 	}
 }
 
-func inputMovieName() string {
+func inputDetails() string {
 	reader := bufio.NewReader(os.Stdin)
-	moveName, err := reader.ReadString('\n')
+	info, err := reader.ReadString('\n')
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return ""
 	}
 
-	moveName = strings.TrimSuffix(moveName, "\n")
-	return moveName
+	info = strings.TrimSuffix(info, "\n")
+	return info
 }
