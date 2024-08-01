@@ -9,11 +9,8 @@ import (
 	"strings"
 )
 
-const fileName = "marvel_movies.csv"
-
 func main() {
 	var movie movies.Movie
-
 	var command string
 
 loop:
@@ -23,6 +20,7 @@ loop:
 		fmt.Println("R - Enter Rating")
 		fmt.Println("N - Serach Movie by Name")
 		fmt.Println("A - Add New Movie")
+		fmt.Println("D - Delete a Movie")
 		fmt.Println("E - Exit")
 
 		fmt.Print("Enter Command: ")
@@ -30,7 +28,7 @@ loop:
 
 		switch strings.ToUpper(command) {
 		case "L":
-			allMovies, err := movie.GetAllMovies(fileName)
+			allMovies, err := movie.GetAllMovies()
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				return
@@ -40,7 +38,7 @@ loop:
 			fmt.Print("Enter Rating: ")
 			rating, _ := strconv.ParseFloat(inputDetails(), 64)
 
-			moviesByRating, err := movie.GetMoviesByRating(fileName, rating)
+			moviesByRating, err := movie.GetMoviesByRating(rating)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				return
@@ -50,7 +48,7 @@ loop:
 		case "N":
 			fmt.Print("Enter Movie Name: ")
 			movieName := inputDetails()
-			serchMovie, err := movie.SearchMoviebyName(fileName, movieName)
+			serchMovie, err := movie.SearchMoviebyName(movieName)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				return
@@ -63,17 +61,24 @@ loop:
 				fmt.Println(err)
 				continue
 			}
-
-			err = movies.AddNewMovie(fileName, newMovie)
+			err = newMovie.AddMovie()
 			if err != nil {
 				fmt.Printf("Unable to add movie, received error %v\n", err)
 				return
-
 			}
 			fmt.Println("New Movie added!")
 			fmt.Println(newMovie)
-
+		case "D":
+			fmt.Print("Enter the Moive name to Delete: ")
+			movieName := inputDetails()
+			if err := movie.DeleteMovie(movieName); err != nil {
+				fmt.Println(err)
+				return
+			}
+			fmt.Printf("%s deleted!", movieName)
+			fmt.Println()
 		case "E":
+			fmt.Println("Exiting...")
 			break loop
 		default:
 			fmt.Println("Invalid Command")

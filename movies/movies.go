@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,8 @@ type Movie struct {
 	ReleaseDate     time.Time
 	Rating          float64
 }
+
+const filePath = "marvel_movies.csv"
 
 func (mv Movie) PrintAll(allmovies *[]Movie) {
 	for _, movie := range *allmovies {
@@ -55,18 +58,9 @@ func GetDate(dateString string) (time.Time, error) {
 // Using ReadAll() will reuturn a string slices of slice
 // Arrange them into the Movie Strutct
 // Make a slice of Movie structs and return a pointer to it.
-func (mv Movie) GetAllMovies(filepath string) (*[]Movie, error) {
+func (mv Movie) GetAllMovies() (*[]Movie, error) {
 
-	moviesFile, err := os.Open(filepath)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read movies csv file %w", err)
-	}
-
-	defer moviesFile.Close()
-
-	csvReader := csv.NewReader(moviesFile)
-
-	csvData, err := csvReader.ReadAll()
+	csvData, err := ReadAllMoviesFile()
 	if err != nil {
 		return nil, err
 	}
@@ -93,27 +87,44 @@ func (mv Movie) GetAllMovies(filepath string) (*[]Movie, error) {
 	return &movies, nil
 }
 
+func ReadAllMoviesFile() ([][]string, error) {
+
+	moviesFile, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read movies csv file %w", err)
+	}
+	defer moviesFile.Close()
+	csvReader := csv.NewReader(moviesFile)
+	return csvReader.ReadAll()
+}
+
 // Function to get the Movie by given name
-func (mv Movie) SearchMoviebyName(file, movieName string) (Movie, error) {
+func (mv Movie) SearchMoviebyName(movieName string) (Movie, error) {
 
 	//open the csv file to read
-	moviesFile, err := os.Open(file)
+	moviesFile, err := os.Open(filePath)
 	if err != nil {
 		return Movie{}, fmt.Errorf("unable to read movies csv file %w", err)
 	}
 
 	defer moviesFile.Close()
 
+	//move to the begennning of the file
+	moviesFile.Seek(0, 0)
 	//create a NewReader using csv std lib which takes io.Reader
 	//*os.File from Open satisfies io.Reader interface
 	csvReader := csv.NewReader(moviesFile)
+
+	//tracking if the record for the given name is found
+	found := false
 
 	//loop over the csv file and read one record at a time using Read method on reader
 	for {
 		record, err := csvReader.Read()
 		//if the file is reaches end of file return as movie with given names does not exist
 		if err == io.EOF {
-			return Movie{}, fmt.Errorf("no movies by given name found")
+			found = false
+			break
 		}
 		//return if there are additional errors
 		if err != nil {
@@ -130,9 +141,16 @@ func (mv Movie) SearchMoviebyName(file, movieName string) (Movie, error) {
 			mv.ReleaseDate, _ = GetDate(record[4])
 			mv.Rating, _ = strconv.ParseFloat(record[5], 64)
 
-			return mv, nil
+			found = true // Movie was found
+			break
 		}
 	}
+
+	if !found {
+		return Movie{}, fmt.Errorf("movie with name %s not found", movieName)
+	}
+
+	return mv, nil
 
 }
 
@@ -141,20 +159,21 @@ Function to get the Movies as per the given rating
 Return slice of movies which have more rating than the provided rating.
 */
 
-func (mv Movie) GetMoviesByRating(file string, rating float64) (*[]Movie, error) {
+func (mv Movie) GetMoviesByRating(rating float64) (*[]Movie, error) {
 
 	//If the rating provided is 0 or more that 10 return
 	if rating == 0 || rating > 10 {
 		return nil, errors.New("rating provided is not valid")
 	}
 
-	moviesFile, err := os.Open(file)
+	moviesFile, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read movies csv file %w", err)
 	}
 
 	defer moviesFile.Close()
 
+	moviesFile.Seek(0, 0)
 	csvReader := csv.NewReader(moviesFile)
 
 	//since we need more that one records to be returned a slice of Movie type is used
@@ -163,17 +182,12 @@ func (mv Movie) GetMoviesByRating(file string, rating float64) (*[]Movie, error)
 	for {
 		record, err := csvReader.Read()
 		if err == io.EOF {
-			// entire file needs to be looped over unlike SearchMoviebyName func as
-			// that func returned as soon as match was recevied
-			// cannot return as we need to keep final return out of the loop
-			// returning here would leave that code unreachable - using break instead
+			// break once the end of file reached
 			break
-
 		}
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unexpected error: %w", err)
 		}
-
 		//since Read gives []string, convert it to float64 to compare with given float64 rating
 		if r, _ := strconv.ParseFloat(record[5], 64); r > rating {
 			mv.MovieName = record[0]
@@ -186,7 +200,6 @@ func (mv Movie) GetMoviesByRating(file string, rating float64) (*[]Movie, error)
 			//append each match to the slice
 			moviesByRating = append(moviesByRating, mv)
 		}
-
 	}
 	return &moviesByRating, nil
 }
@@ -196,7 +209,14 @@ This func add a new Movie field to the csv file.
 Created this as standalone function without receiver argument
 */
 
-func AddNewMovie(filePath string, newMovie Movie) error {
+func (mv Movie) AddMovie() error {
+
+	//duplicate movie names are not allowed
+	//user SearchMovie func to check the movie with given name exists
+	serchMovie, _ := mv.SearchMoviebyName(mv.MovieName)
+	if strings.EqualFold(serchMovie.MovieName, mv.MovieName) {
+		return fmt.Errorf("movie with name %s already exists", mv.MovieName)
+	}
 
 	//use OpenFile method as Open only allows to open file as Read only.
 	// both flags os.O_APPEND|os.O_WRONLY are required to the end of file
@@ -211,12 +231,12 @@ func AddNewMovie(filePath string, newMovie Movie) error {
 	//create a field of slice of string
 	//this will be passed to Write method o csvWriter
 	moviefield := []string{
-		newMovie.MovieName,
-		newMovie.Director,
-		newMovie.MainProtagonist,
-		newMovie.MainAntagonist,
-		newMovie.ReleaseDate.Format("2006-01-02"),
-		fmt.Sprintf("%.1f", newMovie.Rating),
+		mv.MovieName,
+		mv.Director,
+		mv.MainProtagonist,
+		mv.MainAntagonist,
+		mv.ReleaseDate.Format("2006-01-02"),
+		fmt.Sprintf("%.1f", mv.Rating),
 	}
 
 	// write the field to the buffer
@@ -230,6 +250,62 @@ func AddNewMovie(filePath string, newMovie Movie) error {
 	// use Error() method on csv writer to check if the write to file was successful
 	if err := csvWriter.Error(); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+/*
+Method to delete the movie with provided name
+*/
+func (mv Movie) DeleteMovie(movieName string) error {
+	if movieName == "" {
+		return errors.New("no movie name provided to delete")
+	}
+
+	// read all the movie data into memory
+	allMovies, err := ReadAllMoviesFile()
+	if err != nil {
+		return err
+	}
+
+	var deleteIndex int //will use to get the index of row to delete
+
+	found := false
+	for index, movie := range allMovies {
+		if movie[0] == movieName {
+			// once the movie name is found set the current index to the delete index
+			deleteIndex = index
+			found = true
+			break
+		}
+	}
+
+	//return if the movie name is not found
+	if !found {
+		return fmt.Errorf("no movie with name: %s found", movieName)
+	}
+
+	//using deleteindex delete the the row of that index using slices.Delete
+	//assisng to new a slice, that still points to same underlying array
+	newMoviesSlice := slices.Delete(allMovies, deleteIndex, deleteIndex+1)
+
+	//Open the file as write only
+	moviesFile, err := os.OpenFile(filePath, os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("unable to open the file, err %w", err)
+	}
+
+	// Truncate the file and move to the beginning
+	moviesFile.Truncate(0)
+	moviesFile.Seek(0, 0)
+	csvWriter := csv.NewWriter(moviesFile)
+
+	//wrtie the enite slice to file using csvWrite
+	csvWriter.WriteAll(newMoviesSlice)
+
+	if err := csvWriter.Error(); err != nil {
+		return fmt.Errorf("erro writing csv: %w", err)
 	}
 
 	return nil

@@ -21,38 +21,38 @@ func newMovieInfo() (movies.Movie, error) {
 	//if so return empty movie type and a custom error
 
 	fmt.Print("Movie Name: ")
-	movieName := inputDetails()
-	if movieName == "" {
-		return movies.Movie{}, errors.New("error: no movie name entered")
+	movieName, err := getValue()
+	if err != nil {
+		return movies.Movie{}, err
 	}
 
-	//chekc if movei name is duplicate
+	//chekc if movie name is duplicate
 	if isDuplicate(movieName) {
 		return movies.Movie{}, errors.New("error: duplicate movie name")
 	}
 
 	fmt.Print("Director: ")
-	director := inputDetails()
-	if director == "" {
-		return movies.Movie{}, errors.New("error: no director name entered")
+	director, err := getValue()
+	if err != nil {
+		return movies.Movie{}, err
 	}
 
 	fmt.Print("Main Protagonist: ")
-	mainProtagonist := inputDetails()
-	if mainProtagonist == "" {
-		return movies.Movie{}, errors.New("error: no Main Protagonist name entered")
+	mainProtagonist, err := getValue()
+	if err != nil {
+		return movies.Movie{}, err
 	}
 
 	fmt.Print("Main Antagonist: ")
-	mainAntagonist := inputDetails()
-	if mainAntagonist == "" {
-		return movies.Movie{}, errors.New("error: no Main Antagonist name entered")
+	mainAntagonist, err := getValue()
+	if err != nil {
+		return movies.Movie{}, err
 	}
 
 	fmt.Print("Release Date (2024-01-01): ")
-	releaseDate := inputDetails()
-	if releaseDate == "" {
-		return movies.Movie{}, errors.New("error: invalid date")
+	releaseDate, err := getValue()
+	if err != nil {
+		return movies.Movie{}, err
 	}
 
 	releaseDateConverted, err := movies.GetDate(releaseDate)
@@ -61,9 +61,9 @@ func newMovieInfo() (movies.Movie, error) {
 	}
 
 	fmt.Print("Rating: ")
-	rating := inputDetails()
-	if rating == "" {
-		return movies.Movie{}, errors.New("error: no Rating entered")
+	rating, err := getValue()
+	if err != nil {
+		return movies.Movie{}, err
 	}
 
 	ratingtoFloat64, err := strconv.ParseFloat(rating, 64)
@@ -86,19 +86,21 @@ func newMovieInfo() (movies.Movie, error) {
 }
 
 /*
-check if the movie name provided is a dupliate
+check if the movie name provided is a duplicate
 use SearchMoviebyName to check if a field with given moive name exits
 compare only the movie names using strings.EqualFold
 */
 func isDuplicate(movieName string) bool {
 	var movie movies.Movie
-	serchMovie, _ := movie.SearchMoviebyName(fileName, movieName)
+	serchMovie, _ := movie.SearchMoviebyName(movieName)
 	return strings.EqualFold(serchMovie.MovieName, movieName)
 }
 
-// func emptyValue(value string) (movies.Movie, error) {
-// 	if value == "" {
-// 		return movies.Movie{}, fmt.Errorf("error: no %s name entered", value)
-// 	}
-// 	return
-// }
+func getValue() (string, error) {
+	value := inputDetails()
+	if value == "" {
+		return "", fmt.Errorf("error: cannot accept empty values")
+	}
+
+	return value, nil
+}
