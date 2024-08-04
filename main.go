@@ -107,6 +107,5 @@ loop:
 		default:
 			fmt.Println("Invalid Command")
 		}
-
 	}
 }

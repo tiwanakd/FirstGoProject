@@ -181,7 +181,6 @@ func (mv Movie) SearchMoviebyName(movieName string) (Movie, error) {
 	mv.Rating, _ = strconv.ParseFloat(movieRecord[5], 64)
 
 	return mv, nil
-
 }
 
 /*
@@ -285,6 +284,9 @@ func (mv Movie) AddMovie() error {
 	return nil
 }
 
+/*
+Function that writes multiple rows to CSV File
+*/
 func writeAll(allmovies [][]string) error {
 	moviesFile, err := os.OpenFile(filePath, os.O_WRONLY, 0644)
 	if err != nil {
@@ -380,7 +382,6 @@ func (mv Movie) UpdateMovie(movieName, field string) error {
 			default:
 				return fmt.Errorf("invalid Input name %s", field)
 			}
-
 		}
 	}
 

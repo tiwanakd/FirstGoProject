@@ -4,155 +4,68 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"projecta/movies"
 	"strconv"
 	"strings"
 )
 
-/*
-	Function that pompts the user to enter the new movie data
-	Return a moview type that will be used in AddNewMovie function
-*/
-
+// propmt user to add a new movie
+// reutrn a movies.Movie type with new information
 func newMovieInfo() (movies.Movie, error) {
 
-	//prompt the user for the required record info
-	//use inputDetails() function to get values from Stdin
-	//check if the provided input is empty
-	//if so return empty movie type and a custom error
-
-	fmt.Print("Movie Name: ")
-	movieName, err := getValue()
-	if err != nil {
-		return movies.Movie{}, err
-	}
-
+	movieName := getInputData("MovieName").MovieName
 	//chekc if movie name is duplicate
 	if isDuplicate(movieName) {
 		return movies.Movie{}, errors.New("error: duplicate movie name")
 	}
 
-	fmt.Print("Director: ")
-	director, err := getValue()
-	if err != nil {
-		return movies.Movie{}, err
-	}
-
-	fmt.Print("Main Protagonist: ")
-	mainProtagonist, err := getValue()
-	if err != nil {
-		return movies.Movie{}, err
-	}
-
-	fmt.Print("Main Antagonist: ")
-	mainAntagonist, err := getValue()
-	if err != nil {
-		return movies.Movie{}, err
-	}
-
-	fmt.Print("Release Date (2024-01-01): ")
-	releaseDate, err := getValue()
-	if err != nil {
-		return movies.Movie{}, err
-	}
-
-	releaseDateConverted, err := movies.GetDate(releaseDate)
-	if err != nil {
-		return movies.Movie{}, errors.New("error: invalid date entered, date should follow the following format: 2024-01-01")
-	}
-
-	fmt.Print("Rating: ")
-	rating, err := getValue()
-	if err != nil {
-		return movies.Movie{}, err
-	}
-
-	ratingtoFloat64, err := strconv.ParseFloat(rating, 64)
-	if err != nil {
-		return movies.Movie{}, fmt.Errorf("error: invaid rating")
-	}
-
-	if ratingtoFloat64 > 10 {
-		return movies.Movie{}, errors.New("error: rating cannot be more that 10")
-	}
+	director := getInputData("Director").Director
+	mainProtagonist := getInputData("MainProtagonist").MainProtagonist
+	mainAntagonist := getInputData("MainAntagonist").MainAntagonist
+	releaseDate := getInputData("ReleaseDate").ReleaseDate
+	rating := getInputData("Rating").Rating
 
 	return movies.Movie{
 		MovieName:       movieName,
 		Director:        director,
 		MainProtagonist: mainProtagonist,
 		MainAntagonist:  mainAntagonist,
-		ReleaseDate:     releaseDateConverted,
-		Rating:          ratingtoFloat64,
+		ReleaseDate:     releaseDate,
+		Rating:          rating,
 	}, nil
 }
 
+// prompt user to update a movie field
+// user will proivde the moviename and field that needs to be updated
 func updateMovieInfo(field string) (movies.Movie, error) {
 	var updatedMovie movies.Movie
 
 	switch strings.ToLower(field) {
 	case "name":
-		fmt.Print("Enter the new Movie Name: ")
-		newName, err := getValue()
-		if err != nil {
-			return movies.Movie{}, err
-		}
-		updatedMovie.MovieName = newName
+		movieName := getInputData("MovieName").MovieName
+		updatedMovie.MovieName = movieName
 
 	case "director", "dir":
-		fmt.Print("Enter the new Dirctor Name: ")
-		newDirector, err := getValue()
-		if err != nil {
-			return movies.Movie{}, err
-		}
-		updatedMovie.Director = newDirector
+		director := getInputData("Director").Director
+		updatedMovie.Director = director
 
 	case "protagonist", "pro":
-		fmt.Print("Enter the new Main Protagonist: ")
-		newProtagonist, err := getValue()
-		if err != nil {
-			return movies.Movie{}, err
-		}
-		updatedMovie.MainProtagonist = newProtagonist
+		mainProtagonist := getInputData("MainProtagonist").MainProtagonist
+		updatedMovie.MainProtagonist = mainProtagonist
 
 	case "antagonist", "ant":
-		fmt.Print("Enter the new Main Antagonist: ")
-		newAntagonist, err := getValue()
-		if err != nil {
-			return movies.Movie{}, err
-		}
-		updatedMovie.MainAntagonist = newAntagonist
+		mainAntagonist := getInputData("MainAntagonist").MainAntagonist
+		updatedMovie.MainAntagonist = mainAntagonist
 
 	case "releasedate", "rdate":
-		fmt.Print("Enter the new Relase Date: ")
-		newDate, err := getValue()
-		if err != nil {
-			return movies.Movie{}, err
-		}
-
-		releaseDateConverted, err := movies.GetDate(newDate)
-		if err != nil {
-			return movies.Movie{}, errors.New("error: invalid date entered, date should follow the following format: 2024-01-01")
-		}
-
-		updatedMovie.ReleaseDate = releaseDateConverted
+		releaseDate := getInputData("ReleaseDate").ReleaseDate
+		updatedMovie.ReleaseDate = releaseDate
 
 	case "rating":
-		fmt.Print("Enter the new Rating: ")
-		newRating, err := getValue()
-		if err != nil {
-			return movies.Movie{}, err
-		}
-		ratingtoFloat64, err := strconv.ParseFloat(newRating, 64)
-		if err != nil {
-			return movies.Movie{}, fmt.Errorf("error: invaid rating")
-		}
-
-		if ratingtoFloat64 > 10 {
-			return movies.Movie{}, errors.New("error: rating cannot be more that 10")
-		}
-
-		updatedMovie.Rating = ratingtoFloat64
+		rating := getInputData("Rating").Rating
+		updatedMovie.Rating = rating
 	default:
 		return movies.Movie{}, fmt.Errorf("invalid Field name")
 	}
@@ -171,15 +84,7 @@ func isDuplicate(movieName string) bool {
 	return strings.EqualFold(serchMovie.MovieName, movieName)
 }
 
-func getValue() (string, error) {
-	value := inputDetails()
-	if value == "" {
-		return "", fmt.Errorf("error: cannot accept empty values")
-	}
-
-	return value, nil
-}
-
+// get the input from the termial
 func inputDetails() string {
 	reader := bufio.NewReader(os.Stdin)
 	info, err := reader.ReadString('\n')
@@ -190,4 +95,53 @@ func inputDetails() string {
 
 	info = strings.TrimSuffix(info, "\n")
 	return info
+}
+
+// Function that get the input from the user as per the given prompt
+// Returns a Moive type
+func getInputData(prompt string) movies.Movie {
+
+	//create a nil movie type
+	var movie movies.Movie
+
+	//prompt the user for the required field
+	fmt.Printf("%s: ", prompt)
+	value := inputDetails()
+	if value == "" {
+		log.Fatalln("error: cannot accept empty values")
+	}
+
+	//assign the values inputted by the user to their corresponding property
+	switch prompt {
+	case "MovieName":
+		movie.MovieName = value
+	case "Director":
+		movie.Director = value
+	case "MainProtagonist":
+		movie.MainProtagonist = value
+	case "MainAntagonist":
+		movie.MainAntagonist = value
+	case "ReleaseDate":
+		//date needs to be converted to time.Time type
+		//user GetDate Function provided by movies package
+		releaseDateConverted, err := movies.GetDate(value)
+		if err != nil {
+			log.Fatalln("error: invalid date entered, date should follow the following format: 2024-01-01")
+		}
+		movie.ReleaseDate = releaseDateConverted
+	case "Rating":
+		//provided string values needs to be converted to float
+		ratingtoFloat64, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			log.Fatalln("error: invaid rating")
+		}
+
+		if ratingtoFloat64 > 10 {
+			log.Fatalln("error: rating cannot be more that 10")
+		}
+
+		movie.Rating = ratingtoFloat64
+	}
+
+	return movie
 }
