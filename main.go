@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"projecta/movies"
@@ -17,10 +16,11 @@ loop:
 	for {
 		fmt.Println("Choose from the following: ")
 		fmt.Println("L - List all Movies")
-		fmt.Println("R - Enter Rating")
+		fmt.Println("R - Search By Rating")
 		fmt.Println("N - Serach Movie by Name")
 		fmt.Println("A - Add New Movie")
 		fmt.Println("D - Delete a Movie")
+		fmt.Println("U - Update a Movie Field")
 		fmt.Println("E - Exit")
 
 		fmt.Print("Enter Command: ")
@@ -36,7 +36,11 @@ loop:
 			movie.PrintAll(allMovies)
 		case "R":
 			fmt.Print("Enter Rating: ")
-			rating, _ := strconv.ParseFloat(inputDetails(), 64)
+			rating, err := strconv.ParseFloat(inputDetails(), 64)
+			if err != nil {
+				fmt.Println("Invalid Rating")
+				continue
+			}
 
 			moviesByRating, err := movie.GetMoviesByRating(rating)
 			if err != nil {
@@ -75,8 +79,28 @@ loop:
 				fmt.Println(err)
 				return
 			}
-			fmt.Printf("%s deleted!", movieName)
-			fmt.Println()
+			fmt.Printf("%s deleted!\n", movieName)
+
+		case "U":
+			fmt.Print("Movie to Update: ")
+			movieName := inputDetails()
+
+			fmt.Print("Field to Update (name|dir|pro|ant|rdate|rating): ")
+			field := inputDetails()
+
+			updatedMovie, err := updateMovieInfo(field)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			err = updatedMovie.UpdateMovie(movieName, field)
+			if err != nil {
+				fmt.Printf("Unable to update movie, error %v\n", err)
+				return
+			}
+			fmt.Printf("%s updated!\n", movieName)
+
 		case "E":
 			fmt.Println("Exiting...")
 			break loop
@@ -85,16 +109,4 @@ loop:
 		}
 
 	}
-}
-
-func inputDetails() string {
-	reader := bufio.NewReader(os.Stdin)
-	info, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return ""
-	}
-
-	info = strings.TrimSuffix(info, "\n")
-	return info
 }

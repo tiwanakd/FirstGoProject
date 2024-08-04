@@ -21,6 +21,7 @@ type Movie struct {
 	Rating          float64
 }
 
+// CSV file that is to be used
 const filePath = "marvel_movies.csv"
 
 func (mv Movie) PrintAll(allmovies *[]Movie) {
@@ -60,7 +61,7 @@ func GetDate(dateString string) (time.Time, error) {
 // Make a slice of Movie structs and return a pointer to it.
 func (mv Movie) GetAllMovies() (*[]Movie, error) {
 
-	csvData, err := ReadAllMoviesFile()
+	csvData, err := readAllMovies()
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +88,10 @@ func (mv Movie) GetAllMovies() (*[]Movie, error) {
 	return &movies, nil
 }
 
-func ReadAllMoviesFile() ([][]string, error) {
+/*
+locat function to read the csv and return all the fields
+*/
+func readAllMovies() ([][]string, error) {
 
 	moviesFile, err := os.Open(filePath)
 	if err != nil {
@@ -98,13 +102,16 @@ func ReadAllMoviesFile() ([][]string, error) {
 	return csvReader.ReadAll()
 }
 
-// Function to get the Movie by given name
-func (mv Movie) SearchMoviebyName(movieName string) (Movie, error) {
+/*
+local function to read a single given movie and
+return a single field
+*/
+func readMovie(movieName string) ([]string, int, error) {
 
 	//open the csv file to read
 	moviesFile, err := os.Open(filePath)
 	if err != nil {
-		return Movie{}, fmt.Errorf("unable to read movies csv file %w", err)
+		return nil, -1, fmt.Errorf("unable to read movies csv file %w", err)
 	}
 
 	defer moviesFile.Close()
@@ -115,12 +122,21 @@ func (mv Movie) SearchMoviebyName(movieName string) (Movie, error) {
 	//*os.File from Open satisfies io.Reader interface
 	csvReader := csv.NewReader(moviesFile)
 
-	//tracking if the record for the given name is found
+	//create emtpy slice to hold movie movie
+	var moviemovie []string
+
+	//set up an index to track where the movie is located in file
+	var movieIndex int
+	//set up count which will incremented everytime a record is read
+	//count will be set to the movieIndex if the movie is found
+	count := 0
+
+	//tracking if the movie for the given name is found
 	found := false
 
-	//loop over the csv file and read one record at a time using Read method on reader
+	//loop over the csv file and read one movie at a time using Read method on reader
 	for {
-		record, err := csvReader.Read()
+		movie, err := csvReader.Read()
 		//if the file is reaches end of file return as movie with given names does not exist
 		if err == io.EOF {
 			found = false
@@ -128,27 +144,41 @@ func (mv Movie) SearchMoviebyName(movieName string) (Movie, error) {
 		}
 		//return if there are additional errors
 		if err != nil {
-			return Movie{}, err
+			return nil, -1, err
 		}
-		//check if the provided name matches the first record which is the moive name
-		//assign values of each record to its correspoding fields from Movie type
-		//after assigning the values return as we only need a signle Movie field
-		if strings.EqualFold(record[0], movieName) {
-			mv.MovieName = record[0]
-			mv.Director = record[1]
-			mv.MainProtagonist = record[2]
-			mv.MainAntagonist = record[3]
-			mv.ReleaseDate, _ = GetDate(record[4])
-			mv.Rating, _ = strconv.ParseFloat(record[5], 64)
 
+		//if the first reocrd that is the movie name is equal append to moviemovie
+		if strings.EqualFold(movie[0], movieName) {
+			moviemovie = append(moviemovie, movie...)
 			found = true // Movie was found
+			movieIndex = count
 			break
 		}
+
+		count++ //increment the count
 	}
 
 	if !found {
-		return Movie{}, fmt.Errorf("movie with name %s not found", movieName)
+		return nil, -1, fmt.Errorf("movie with name %s not found", movieName)
 	}
+
+	return moviemovie, movieIndex, nil
+
+}
+
+// Function to get the Movie by given name
+func (mv Movie) SearchMoviebyName(movieName string) (Movie, error) {
+	movieRecord, _, err := readMovie(movieName)
+	if err != nil {
+		return Movie{}, err
+	}
+
+	mv.MovieName = movieRecord[0]
+	mv.Director = movieRecord[1]
+	mv.MainProtagonist = movieRecord[2]
+	mv.MainAntagonist = movieRecord[3]
+	mv.ReleaseDate, _ = GetDate(movieRecord[4])
+	mv.Rating, _ = strconv.ParseFloat(movieRecord[5], 64)
 
 	return mv, nil
 
@@ -176,11 +206,11 @@ func (mv Movie) GetMoviesByRating(rating float64) (*[]Movie, error) {
 	moviesFile.Seek(0, 0)
 	csvReader := csv.NewReader(moviesFile)
 
-	//since we need more that one records to be returned a slice of Movie type is used
+	//since we need more that one movies to be returned a slice of Movie type is used
 	var moviesByRating []Movie
 
 	for {
-		record, err := csvReader.Read()
+		movie, err := csvReader.Read()
 		if err == io.EOF {
 			// break once the end of file reached
 			break
@@ -189,12 +219,12 @@ func (mv Movie) GetMoviesByRating(rating float64) (*[]Movie, error) {
 			return nil, fmt.Errorf("unexpected error: %w", err)
 		}
 		//since Read gives []string, convert it to float64 to compare with given float64 rating
-		if r, _ := strconv.ParseFloat(record[5], 64); r > rating {
-			mv.MovieName = record[0]
-			mv.Director = record[1]
-			mv.MainProtagonist = record[2]
-			mv.MainAntagonist = record[3]
-			mv.ReleaseDate, _ = GetDate(record[4])
+		if r, _ := strconv.ParseFloat(movie[5], 64); r > rating {
+			mv.MovieName = movie[0]
+			mv.Director = movie[1]
+			mv.MainProtagonist = movie[2]
+			mv.MainAntagonist = movie[3]
+			mv.ReleaseDate, _ = GetDate(movie[4])
 			mv.Rating = r
 
 			//append each match to the slice
@@ -255,6 +285,27 @@ func (mv Movie) AddMovie() error {
 	return nil
 }
 
+func writeAll(allmovies [][]string) error {
+	moviesFile, err := os.OpenFile(filePath, os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("unable to open the file, err %w", err)
+	}
+
+	// Truncate the file and move to the beginning
+	moviesFile.Truncate(0)
+	moviesFile.Seek(0, 0)
+	csvWriter := csv.NewWriter(moviesFile)
+
+	//wrtie the enite slice to file using csvWrite
+	csvWriter.WriteAll(allmovies)
+
+	if err := csvWriter.Error(); err != nil {
+		return fmt.Errorf("erro writing csv: %w", err)
+	}
+
+	return nil
+}
+
 /*
 Method to delete the movie with provided name
 */
@@ -264,7 +315,7 @@ func (mv Movie) DeleteMovie(movieName string) error {
 	}
 
 	// read all the movie data into memory
-	allMovies, err := ReadAllMoviesFile()
+	allMovies, err := readAllMovies()
 	if err != nil {
 		return err
 	}
@@ -290,23 +341,49 @@ func (mv Movie) DeleteMovie(movieName string) error {
 	//assisng to new a slice, that still points to same underlying array
 	newMoviesSlice := slices.Delete(allMovies, deleteIndex, deleteIndex+1)
 
-	//Open the file as write only
-	moviesFile, err := os.OpenFile(filePath, os.O_WRONLY, 0644)
+	//use the wrtieAll fucntion to write the new slice to cav file
+	return writeAll(newMoviesSlice)
+}
+
+func (mv Movie) UpdateMovie(movieName, field string) error {
+
+	//get the required index from readMovie function
+	_, movieIndex, err := readMovie(movieName)
 	if err != nil {
-		return fmt.Errorf("unable to open the file, err %w", err)
+		return err
 	}
 
-	// Truncate the file and move to the beginning
-	moviesFile.Truncate(0)
-	moviesFile.Seek(0, 0)
-	csvWriter := csv.NewWriter(moviesFile)
-
-	//wrtie the enite slice to file using csvWrite
-	csvWriter.WriteAll(newMoviesSlice)
-
-	if err := csvWriter.Error(); err != nil {
-		return fmt.Errorf("erro writing csv: %w", err)
+	//get all movies
+	allMovies, err := readAllMovies()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	//loop over allMoives slice
+	//on the same index as movieIndex update the passed in filed
+	for index, movieField := range allMovies {
+		if index == movieIndex {
+			//use swtich to check which field is to be updated
+			switch strings.ToLower(field) {
+			case "name":
+				movieField[0] = mv.MovieName
+			case "director", "dir":
+				movieField[1] = mv.Director
+			case "protagonist", "pro":
+				movieField[2] = mv.MainProtagonist
+			case "antagonist", "ant":
+				movieField[3] = mv.MainAntagonist
+			case "releasedate", "rdate":
+				movieField[4] = mv.ReleaseDate.Format("2006-01-02")
+			case "rating":
+				movieField[5] = fmt.Sprintf("%.1f", mv.Rating)
+			default:
+				return fmt.Errorf("invalid Input name %s", field)
+			}
+
+		}
+	}
+
+	//use writeAll function to write back the update slice to csv file
+	return writeAll(allMovies)
 }
