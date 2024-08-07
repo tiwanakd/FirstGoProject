@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
-	"projecta/movies"
 	"strconv"
 	"strings"
+
+	"projecta/movies"
+	"projecta/moviestui"
 )
 
 func main() {
@@ -14,17 +16,7 @@ func main() {
 
 loop:
 	for {
-		fmt.Println("Choose from the following: ")
-		fmt.Println("L - List all Movies")
-		fmt.Println("R - Search By Rating")
-		fmt.Println("N - Serach Movie by Name")
-		fmt.Println("A - Add New Movie")
-		fmt.Println("D - Delete a Movie")
-		fmt.Println("U - Update a Movie Field")
-		fmt.Println("E - Exit")
-
-		fmt.Print("Enter Command: ")
-		fmt.Scan(&command)
+		command = moviestui.IntialCommand()
 
 		switch strings.ToUpper(command) {
 		case "L":
@@ -45,7 +37,7 @@ loop:
 			moviesByRating, err := movie.GetMoviesByRating(rating)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
-				return
+				continue
 			}
 			fmt.Printf("Movies with rating greater than %.1f\n", rating)
 			movie.PrintAll(moviesByRating)
@@ -55,7 +47,7 @@ loop:
 			serchMovie, err := movie.SearchMoviebyName(movieName)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
-				return
+				continue
 			}
 			fmt.Println(serchMovie)
 		case "A":
@@ -68,16 +60,21 @@ loop:
 			err = newMovie.AddMovie()
 			if err != nil {
 				fmt.Printf("Unable to add movie, received error %v\n", err)
-				return
+				continue
 			}
 			fmt.Println("New Movie added!")
 			fmt.Println(newMovie)
 		case "D":
 			fmt.Print("Enter the Moive name to Delete: ")
 			movieName := inputDetails()
+
+			if !moviestui.ConfimDelete(movieName) {
+				continue
+			}
+
 			if err := movie.DeleteMovie(movieName); err != nil {
 				fmt.Println(err)
-				return
+				continue
 			}
 			fmt.Printf("%s deleted!\n", movieName)
 
@@ -85,8 +82,7 @@ loop:
 			fmt.Print("Movie to Update: ")
 			movieName := inputDetails()
 
-			fmt.Print("Field to Update (name|dir|pro|ant|rdate|rating): ")
-			field := inputDetails()
+			field := moviestui.UpdateFieldOption()
 
 			updatedMovie, err := updateMovieInfo(field)
 			if err != nil {
@@ -97,7 +93,7 @@ loop:
 			err = updatedMovie.UpdateMovie(movieName, field)
 			if err != nil {
 				fmt.Printf("Unable to update movie, error %v\n", err)
-				return
+				continue
 			}
 			fmt.Printf("%s updated!\n", movieName)
 

@@ -302,7 +302,7 @@ func writeAll(allmovies [][]string) error {
 	csvWriter.WriteAll(allmovies)
 
 	if err := csvWriter.Error(); err != nil {
-		return fmt.Errorf("erro writing csv: %w", err)
+		return fmt.Errorf("error writing csv: %w", err)
 	}
 
 	return nil

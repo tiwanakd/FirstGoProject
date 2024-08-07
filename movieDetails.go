@@ -4,36 +4,58 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"log"
 	"os"
-	"projecta/movies"
 	"strconv"
 	"strings"
+
+	"projecta/movies"
 )
 
 // propmt user to add a new movie
 // reutrn a movies.Movie type with new information
 func newMovieInfo() (movies.Movie, error) {
 
-	movieName := getInputData("MovieName").MovieName
+	movieName, err := getInputData("MovieName")
+	if err != nil {
+		return movies.Movie{}, err
+	}
 	//chekc if movie name is duplicate
-	if isDuplicate(movieName) {
+	if isDuplicate(movieName.MovieName) {
 		return movies.Movie{}, errors.New("error: duplicate movie name")
 	}
 
-	director := getInputData("Director").Director
-	mainProtagonist := getInputData("MainProtagonist").MainProtagonist
-	mainAntagonist := getInputData("MainAntagonist").MainAntagonist
-	releaseDate := getInputData("ReleaseDate").ReleaseDate
-	rating := getInputData("Rating").Rating
+	moivieDirector, err := getInputData("Director")
+	if err != nil {
+		return movies.Movie{}, err
+	}
+
+	movieMainProtagonist, err := getInputData("MainProtagonist")
+	if err != nil {
+		return movies.Movie{}, err
+	}
+
+	movieMainAntagonist, err := getInputData("MainAntagonist")
+	if err != nil {
+		return movies.Movie{}, err
+	}
+
+	movieReleaseDate, err := getInputData("ReleaseDate")
+	if err != nil {
+		return movies.Movie{}, err
+	}
+
+	movieRating, err := getInputData("Rating")
+	if err != nil {
+		return movies.Movie{}, err
+	}
 
 	return movies.Movie{
-		MovieName:       movieName,
-		Director:        director,
-		MainProtagonist: mainProtagonist,
-		MainAntagonist:  mainAntagonist,
-		ReleaseDate:     releaseDate,
-		Rating:          rating,
+		MovieName:       movieName.MovieName,
+		Director:        moivieDirector.Director,
+		MainProtagonist: movieMainProtagonist.MainProtagonist,
+		MainAntagonist:  movieMainAntagonist.MainAntagonist,
+		ReleaseDate:     movieReleaseDate.ReleaseDate,
+		Rating:          movieRating.Rating,
 	}, nil
 }
 
@@ -44,28 +66,46 @@ func updateMovieInfo(field string) (movies.Movie, error) {
 
 	switch strings.ToLower(field) {
 	case "name":
-		movieName := getInputData("MovieName").MovieName
-		updatedMovie.MovieName = movieName
+		movie, err := getInputData("MovieName")
+		if err != nil {
+			return movies.Movie{}, err
+		}
+		updatedMovie.MovieName = movie.MovieName
 
-	case "director", "dir":
-		director := getInputData("Director").Director
-		updatedMovie.Director = director
+	case "director":
+		movie, err := getInputData("Director")
+		if err != nil {
+			return movies.Movie{}, err
+		}
+		updatedMovie.Director = movie.Director
 
-	case "protagonist", "pro":
-		mainProtagonist := getInputData("MainProtagonist").MainProtagonist
-		updatedMovie.MainProtagonist = mainProtagonist
+	case "protagonist":
+		movie, err := getInputData("MainProtagonist")
+		if err != nil {
+			return movies.Movie{}, err
+		}
+		updatedMovie.MainProtagonist = movie.MainProtagonist
 
-	case "antagonist", "ant":
-		mainAntagonist := getInputData("MainAntagonist").MainAntagonist
-		updatedMovie.MainAntagonist = mainAntagonist
+	case "antagonist":
+		movie, err := getInputData("MainAntagonist")
+		if err != nil {
+			return movies.Movie{}, err
+		}
+		updatedMovie.MainAntagonist = movie.MainAntagonist
 
-	case "releasedate", "rdate":
-		releaseDate := getInputData("ReleaseDate").ReleaseDate
-		updatedMovie.ReleaseDate = releaseDate
+	case "releasedate":
+		movie, err := getInputData("ReleaseDate")
+		if err != nil {
+			return movies.Movie{}, err
+		}
+		updatedMovie.ReleaseDate = movie.ReleaseDate
 
 	case "rating":
-		rating := getInputData("Rating").Rating
-		updatedMovie.Rating = rating
+		movie, err := getInputData("Rating")
+		if err != nil {
+			return movies.Movie{}, err
+		}
+		updatedMovie.Rating = movie.Rating
 	default:
 		return movies.Movie{}, fmt.Errorf("invalid Field name")
 	}
@@ -99,7 +139,7 @@ func inputDetails() string {
 
 // Function that get the input from the user as per the given prompt
 // Returns a Moive type
-func getInputData(prompt string) movies.Movie {
+func getInputData(prompt string) (movies.Movie, error) {
 
 	//create a nil movie type
 	var movie movies.Movie
@@ -108,7 +148,7 @@ func getInputData(prompt string) movies.Movie {
 	fmt.Printf("%s: ", prompt)
 	value := inputDetails()
 	if value == "" {
-		log.Fatalln("error: cannot accept empty values")
+		return movies.Movie{}, errors.New("error: cannot accept empty values")
 	}
 
 	//assign the values inputted by the user to their corresponding property
@@ -126,22 +166,22 @@ func getInputData(prompt string) movies.Movie {
 		//user GetDate Function provided by movies package
 		releaseDateConverted, err := movies.GetDate(value)
 		if err != nil {
-			log.Fatalln("error: invalid date entered, date should follow the following format: 2024-01-01")
+			return movies.Movie{}, errors.New("error: invalid date entered, date should follow the following format: 2024-01-01")
 		}
 		movie.ReleaseDate = releaseDateConverted
 	case "Rating":
 		//provided string values needs to be converted to float
 		ratingtoFloat64, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			log.Fatalln("error: invaid rating")
+			return movies.Movie{}, errors.New("error: invaid rating")
 		}
 
 		if ratingtoFloat64 > 10 {
-			log.Fatalln("error: rating cannot be more that 10")
+			return movies.Movie{}, errors.New("error: rating cannot be more that 10")
 		}
 
 		movie.Rating = ratingtoFloat64
 	}
 
-	return movie
+	return movie, nil
 }
