@@ -1,24 +1,26 @@
-package main
+package moviestui
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"os"
+	"log"
 	"strconv"
 	"strings"
 
 	"projecta/movies"
+
+	"github.com/charmbracelet/huh"
 )
 
 // propmt user to add a new movie
 // reutrn a movies.Movie type with new information
-func newMovieInfo() (movies.Movie, error) {
+func NewMovieInfo() (movies.Movie, error) {
 
 	movieName, err := getInputData("MovieName")
 	if err != nil {
 		return movies.Movie{}, err
 	}
+
 	//chekc if movie name is duplicate
 	if isDuplicate(movieName.MovieName) {
 		return movies.Movie{}, errors.New("error: duplicate movie name")
@@ -61,7 +63,7 @@ func newMovieInfo() (movies.Movie, error) {
 
 // prompt user to update a movie field
 // user will proivde the moviename and field that needs to be updated
-func updateMovieInfo(field string) (movies.Movie, error) {
+func UpdateMovieInfo(field string) (movies.Movie, error) {
 	var updatedMovie movies.Movie
 
 	switch strings.ToLower(field) {
@@ -125,16 +127,18 @@ func isDuplicate(movieName string) bool {
 }
 
 // get the input from the termial
-func inputDetails() string {
-	reader := bufio.NewReader(os.Stdin)
-	info, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return ""
+func InputDetails(title string) string {
+
+	var input string
+	form := huh.NewInput().
+		Title(title).
+		Value(&input)
+
+	if err := form.Run(); err != nil {
+		log.Fatal(err)
 	}
 
-	info = strings.TrimSuffix(info, "\n")
-	return info
+	return input
 }
 
 // Function that get the input from the user as per the given prompt
@@ -145,8 +149,7 @@ func getInputData(prompt string) (movies.Movie, error) {
 	var movie movies.Movie
 
 	//prompt the user for the required field
-	fmt.Printf("%s: ", prompt)
-	value := inputDetails()
+	value := InputDetails(prompt)
 	if value == "" {
 		return movies.Movie{}, errors.New("error: cannot accept empty values")
 	}
