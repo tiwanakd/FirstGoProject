@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"slices"
 	"strconv"
@@ -73,7 +74,6 @@ func (mv Movie) GetAllMovies() (*[]Movie, error) {
 	if err != nil {
 		return nil, err
 	}
-	//csvData = csvData[1:] //skipping the first row that has column names
 
 	//make a movies slice which has the length of csvData or number or rows
 	movies := make([]Movie, len(csvData))
@@ -114,12 +114,16 @@ func readAllMovies() ([][]string, error) {
 local function to read a single given movie and
 return a single field
 */
-func readMovie(movieName string) ([]string, int, error) {
+func readMoviesByName(movieName string) ([][]string, error) {
+
+	if len(movieName) < 4 {
+		return nil, errors.New("movie name must be more that 3 letters")
+	}
 
 	//open the csv file to read
 	moviesFile, err := os.Open(filePath)
 	if err != nil {
-		return nil, -1, fmt.Errorf("unable to read movies csv file %w", err)
+		return nil, fmt.Errorf("unable to read movies csv file %w", err)
 	}
 
 	defer moviesFile.Close()
@@ -131,64 +135,58 @@ func readMovie(movieName string) ([]string, int, error) {
 	csvReader := csv.NewReader(moviesFile)
 
 	//create emtpy slice to hold movie movie
-	var moviemovie []string
-
-	//set up an index to track where the movie is located in file
-	var movieIndex int
-	//set up count which will incremented everytime a record is read
-	//count will be set to the movieIndex if the movie is found
-	count := 0
-
-	//tracking if the movie for the given name is found
-	found := false
+	var moviesSlice [][]string
 
 	//loop over the csv file and read one movie at a time using Read method on reader
 	for {
 		movie, err := csvReader.Read()
 		//if the file is reaches end of file return as movie with given names does not exist
 		if err == io.EOF {
-			found = false
 			break
 		}
 		//return if there are additional errors
 		if err != nil {
-			return nil, -1, err
+			return nil, err
 		}
 
-		//if the first reocrd that is the movie name is equal append to moviemovie
-		if strings.EqualFold(movie[0], movieName) {
-			moviemovie = append(moviemovie, movie...)
-			found = true // Movie was found
-			movieIndex = count
-			break
+		// use containts check the all the movie name contacts the give name
+		// append to moviesSlice if true
+		if strings.Contains(strings.ToLower(movie[0]), strings.ToLower(movieName)) {
+			moviesSlice = append(moviesSlice, movie)
 		}
 
-		count++ //increment the count
 	}
 
-	if !found {
-		return nil, -1, fmt.Errorf("movie with name %s not found", movieName)
+	//if the movie slice is empty return error as the movie with given name was not found
+	if len(moviesSlice) < 1 {
+		return nil, fmt.Errorf("movie with name %q not found", movieName)
 	}
 
-	return moviemovie, movieIndex, nil
-
+	return moviesSlice, nil
 }
 
 // Function to get the Movie by given name
-func (mv Movie) SearchMoviebyName(movieName string) (Movie, error) {
-	movieRecord, _, err := readMovie(movieName)
+func (mv Movie) SearchMoviesbyName(movieName string) (*[]Movie, error) {
+	movies, err := readMoviesByName(movieName)
 	if err != nil {
-		return Movie{}, err
+		return nil, err
 	}
 
-	mv.MovieName = movieRecord[0]
-	mv.Director = movieRecord[1]
-	mv.MainProtagonist = movieRecord[2]
-	mv.MainAntagonist = movieRecord[3]
-	mv.ReleaseDate, _ = GetDate(movieRecord[4])
-	mv.Rating, _ = strconv.ParseFloat(movieRecord[5], 64)
+	//make a movies slice which has the length of csvData or number or rows
+	moviesByName := make([]Movie, len(movies))
 
-	return mv, nil
+	for index, movie := range movies {
+		mv.MovieName = movie[0]
+		mv.Director = movie[1]
+		mv.MainProtagonist = movie[2]
+		mv.MainAntagonist = movie[3]
+		mv.ReleaseDate, _ = GetDate(movie[4])
+		mv.Rating, _ = strconv.ParseFloat(movie[5], 64) //convert to float.
+
+		moviesByName[index] = mv
+	}
+
+	return &moviesByName, nil
 }
 
 /*
@@ -242,17 +240,41 @@ func (mv Movie) GetMoviesByRating(rating float64) (*[]Movie, error) {
 }
 
 /*
+exact duplicate names are not allowed.
+create a function to check if movie has a duplicate name
+*/
+func dupicateMovieName(movieName string) bool {
+	file, err := os.Open(filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	csvReader := csv.NewReader(file)
+
+	for {
+		record, err := csvReader.Read()
+		if err == io.EOF {
+			return false
+		}
+		if err != nil {
+			return false
+		}
+
+		if strings.EqualFold(record[0], movieName) {
+			return true
+		}
+	}
+}
+
+/*
 This func add a new Movie field to the csv file.
 Created this as standalone function without receiver argument
 */
-
 func (mv Movie) AddMovie() error {
 
-	//duplicate movie names are not allowed
-	//user SearchMovie func to check the movie with given name exists
-	serchMovie, _ := mv.SearchMoviebyName(mv.MovieName)
-	if strings.EqualFold(serchMovie.MovieName, mv.MovieName) {
-		return fmt.Errorf("movie with name %s already exists", mv.MovieName)
+	if dupicateMovieName(mv.MovieName) {
+		return fmt.Errorf("exact duplicate Movie names not allowed, %q already exists", mv.MovieName)
 	}
 
 	//use OpenFile method as Open only allows to open file as Read only.
@@ -357,22 +379,20 @@ func (mv Movie) DeleteMovie(movieName string) error {
 
 func (mv Movie) UpdateMovie(movieName, field string) error {
 
-	//get the required index from readMovie function
-	_, movieIndex, err := readMovie(movieName)
-	if err != nil {
-		return err
-	}
-
 	//get all movies
 	allMovies, err := readAllMovies()
 	if err != nil {
 		return err
 	}
 
+	//set a traking var to check if the provided movie name exists
+	found := false
+
 	//loop over allMoives slice
 	//on the same index as movieIndex update the passed in filed
-	for index, movieField := range allMovies {
-		if index == movieIndex {
+	for _, movieField := range allMovies {
+		if strings.EqualFold(movieField[0], movieName) {
+			found = true
 			//use swtich to check which field is to be updated
 			switch strings.ToLower(field) {
 			case "name":
@@ -390,7 +410,13 @@ func (mv Movie) UpdateMovie(movieName, field string) error {
 			default:
 				return fmt.Errorf("invalid Input name %s", field)
 			}
+		} else {
+			found = false
 		}
+	}
+
+	if !found {
+		return fmt.Errorf("movie with name %q not found", movieName)
 	}
 
 	//use writeAll function to write back the update slice to csv file

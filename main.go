@@ -45,12 +45,13 @@ loop:
 			movie.PrintAll(moviesByRating)
 		case "N":
 			movieName := moviestui.InputDetails("Enter Movie Name: ")
-			serchMovie, err := movie.SearchMoviebyName(movieName)
+			searchMovies, err := movie.SearchMoviesbyName(movieName)
 			if err != nil {
 				errorRed.Fprintln(os.Stderr, err)
 				continue
 			}
-			serchMovie.Print()
+			movie.PrintAll(searchMovies)
+
 		case "A":
 			fmt.Println("Enter New Movie Details")
 			newMovie, err := moviestui.NewMovieInfo()
@@ -60,7 +61,7 @@ loop:
 			}
 			err = newMovie.AddMovie()
 			if err != nil {
-				errorRed.Fprintf(os.Stderr, "Unable to add movie, received error %v\n", err)
+				errorRed.Fprintf(os.Stderr, "Unable to add movie, received error: %v\n", err)
 				continue
 			}
 			color.Green("New Movie added!")
@@ -73,10 +74,10 @@ loop:
 			}
 
 			if err := movie.DeleteMovie(movieName); err != nil {
-				errorRed.Fprintln(os.Stderr, err)
+				errorRed.Fprintf(os.Stderr, "unable to delete movie, receveid error: %v\n", err)
 				continue
 			}
-			color.Green("%s deleted!\n", movieName)
+			color.Green("%q deleted!\n", movieName)
 
 		case "U":
 			movieName := moviestui.InputDetails("Movie to Update: ")
@@ -89,12 +90,10 @@ loop:
 
 			err = updatedMovie.UpdateMovie(movieName, field)
 			if err != nil {
-				errorRed.Fprintf(os.Stderr, "Unable to update movie, error %v\n", err)
+				errorRed.Fprintf(os.Stderr, "Unable to update movie, error: %v\n", err)
 				continue
 			}
-			color.Green("%s updated!\n", movieName)
-			updatedMovie, _ = movie.SearchMoviebyName(movieName)
-			updatedMovie.Print()
+			color.Green("%q updated!\n", movieName)
 
 		case "E":
 			color.Yellow("Exiting...\n")

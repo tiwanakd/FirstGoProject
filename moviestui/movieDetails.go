@@ -21,11 +21,6 @@ func NewMovieInfo() (movies.Movie, error) {
 		return movies.Movie{}, err
 	}
 
-	//chekc if movie name is duplicate
-	if isDuplicate(movieName.MovieName) {
-		return movies.Movie{}, errors.New("error: duplicate movie name")
-	}
-
 	moivieDirector, err := getInputData("Director")
 	if err != nil {
 		return movies.Movie{}, err
@@ -113,17 +108,6 @@ func UpdateMovieInfo(field string) (movies.Movie, error) {
 	}
 
 	return updatedMovie, nil
-}
-
-/*
-check if the movie name provided is a duplicate
-use SearchMoviebyName to check if a field with given moive name exits
-compare only the movie names using strings.EqualFold
-*/
-func isDuplicate(movieName string) bool {
-	var movie movies.Movie
-	serchMovie, _ := movie.SearchMoviebyName(movieName)
-	return strings.EqualFold(serchMovie.MovieName, movieName)
 }
 
 // get the input from the termial
