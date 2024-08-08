@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 )
 
@@ -24,24 +25,31 @@ type Movie struct {
 // CSV file that is to be used
 const filePath = "marvel_movies.csv"
 
+// Use text/tabwriter package for alignment
+// Delcaring a global varible to use the writer provided by tabwriter
+var writer = tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.TabIndent|tabwriter.Debug)
+
+// Print all the movies in Tabular format
 func (mv Movie) PrintAll(allmovies *[]Movie) {
+	fmt.Fprintln(writer, "Name\tDirector\tMainProtagonist\tMainAntagonist\tReleaseDate\tRating")
+	fmt.Fprintln(writer, "----------------------\t-----------------\t-----------------\t-------------------\t-----------\t------")
 	for _, movie := range *allmovies {
-		fmt.Println(movie)
+		fmt.Fprintln(writer, movie)
 	}
+	writer.Flush()
+}
+
+// Print Single Movie
+func (mv Movie) Print() {
+	fmt.Fprintln(writer, "Name\tDirector\tMainProtagonist\tMainAntagonist\tReleaseDate\tRating")
+	fmt.Fprintln(writer, "----------------------\t-----------------\t-----------------\t-------------------\t-----------\t------")
+	fmt.Fprintln(writer, mv)
+	writer.Flush()
 }
 
 // Implement the Stringer Interface
 func (mv Movie) String() string {
-
-	movieName := fmt.Sprintf("%s:\n", mv.MovieName)
-	director := fmt.Sprintf("\tDirector: %s\n", mv.Director)
-	mainProtagonist := fmt.Sprintf("\tMain Protagonist: %s\n", mv.MainProtagonist)
-	mainAntagonist := fmt.Sprintf("\tMain Antagonist: %s\n", mv.MainAntagonist)
-	releaseDate := fmt.Sprintf("\tRelease Date: %v\n", mv.ReleaseDate.Format("2006-Jan-02"))
-	rating := fmt.Sprintf("\tRating: %.1f\n", mv.Rating)
-	lineBreak := fmt.Sprintln("-------------------------------------------------------")
-
-	return movieName + director + mainProtagonist + mainAntagonist + releaseDate + rating + lineBreak
+	return fmt.Sprintf("%s\t%s\t%s\t%s\t%v\t%.1f", mv.MovieName, mv.Director, mv.MainProtagonist, mv.MainAntagonist, mv.ReleaseDate.Format("2006-Jan-02"), mv.Rating)
 }
 
 // Since date is being provided as string
@@ -65,7 +73,7 @@ func (mv Movie) GetAllMovies() (*[]Movie, error) {
 	if err != nil {
 		return nil, err
 	}
-	csvData = csvData[1:] //skipping the first row that has column names
+	//csvData = csvData[1:] //skipping the first row that has column names
 
 	//make a movies slice which has the length of csvData or number or rows
 	movies := make([]Movie, len(csvData))
@@ -74,7 +82,7 @@ func (mv Movie) GetAllMovies() (*[]Movie, error) {
 		mv.MovieName = movie[0]
 		mv.Director = movie[1]
 		mv.MainProtagonist = movie[2]
-		mv.MainProtagonist = movie[3]
+		mv.MainAntagonist = movie[3]
 		mv.ReleaseDate, _ = GetDate(movie[4])
 		mv.Rating, _ = strconv.ParseFloat(movie[5], 64) //convert to float.
 

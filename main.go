@@ -41,7 +41,7 @@ loop:
 				errorRed.Fprintln(os.Stderr, err)
 				continue
 			}
-			fmt.Printf("Movies with rating greater than %.1f\n", rating)
+			color.Green("Movies with rating greater than %.1f\n", rating)
 			movie.PrintAll(moviesByRating)
 		case "N":
 			movieName := moviestui.InputDetails("Enter Movie Name: ")
@@ -50,7 +50,7 @@ loop:
 				errorRed.Fprintln(os.Stderr, err)
 				continue
 			}
-			fmt.Println(serchMovie)
+			serchMovie.Print()
 		case "A":
 			fmt.Println("Enter New Movie Details")
 			newMovie, err := moviestui.NewMovieInfo()
@@ -63,8 +63,8 @@ loop:
 				errorRed.Fprintf(os.Stderr, "Unable to add movie, received error %v\n", err)
 				continue
 			}
-			fmt.Println("New Movie added!")
-			fmt.Println(newMovie)
+			color.Green("New Movie added!")
+			newMovie.Print()
 		case "D":
 			movieName := moviestui.InputDetails("Enter the Moive name to Delete: ")
 
@@ -76,7 +76,7 @@ loop:
 				errorRed.Fprintln(os.Stderr, err)
 				continue
 			}
-			fmt.Printf("%s deleted!\n", movieName)
+			color.Green("%s deleted!\n", movieName)
 
 		case "U":
 			movieName := moviestui.InputDetails("Movie to Update: ")
@@ -92,7 +92,9 @@ loop:
 				errorRed.Fprintf(os.Stderr, "Unable to update movie, error %v\n", err)
 				continue
 			}
-			fmt.Printf("%s updated!\n", movieName)
+			color.Green("%s updated!\n", movieName)
+			updatedMovie, _ = movie.SearchMoviebyName(movieName)
+			updatedMovie.Print()
 
 		case "E":
 			color.Yellow("Exiting...\n")
